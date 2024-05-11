@@ -19,64 +19,62 @@ type User struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
 	Email    string `json:"email"`
-	Password string `json:"password"`
+	Password string `json:"password"` // Note: Storing passwords as plain text is insecure; consider using hashed passwords.
 }
 
-type Class struct {
+type FitnessClass struct { // Renamed from Class to FitnessClass for clarity
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	Time    string `json:"time"`
 	Members int    `json:"members"`
 }
 
-var users []User
-var classes []Class
+var registeredUsers []User           // Renamed from users to registeredUsers for clarity
+var availableClasses []FitnessClass  // Renamed from classes to availableClasses for clarity
 
 func main() {
 	router := mux.NewRouter()
 	
-	router.HandleFunc("/api/users", getUsers).Methods("GET")
-	router.HandleFunc("/api/user", createUser).Methods("POST")
-	router.HandleFunc("/api/classes", getClasses).Methods("GET")
-	router.HandleFunc("/api/class", createClass).Methods("POST")
-	router.HandleFunc("/api/bookclass", bookClass).Methods("POST")
-	router.HandleFunc("/api/renewmembership", renewMembership).Methods("POST")
+	router.HandleFunc("/api/users", GetAllUsers).Methods("GET")
+	router.HandleFunc("/api/user", RegisterNewUser).Methods("POST")
+	router.HandleFunc("/api/classes", GetAllClasses).Methods("GET")
+	router.HandleFunc("/api/class", CreateNewClass).Methods("POST")
+	router.HandleFunc("/api/bookclass", BookAClass).Methods("POST")
+	router.HandleFunc("/api/renewmembership", RenewMembership).Methods("POST")
 
-	if err := http.ListenAndServe(":"+os.Getenv("PORT"), router); err != nil {
-		log.Fatal("ListenAndServe Error: ", err)
-	}
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), router))
 }
 
-func getUsers(w http.ResponseWriter, r *http.Request) {
+func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
+	json.NewEncoder(w).Encode(registeredUsers)
 }
 
-func createUser(w http.ResponseWriter, r *http.Request) {
-	var user User
-	_ = json.NewDecoder(r.Body).Decode(&user)
-	users = append(users, user)
+func RegisterNewUser(w http.ResponseWriter, r *http.Request) {
+	var newUser User
+	_ = json.NewDecoder(r.Body).Decode(&newUser)
+	registeredUsers = append(registeredUsers, newUser)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(newUser)
 }
 
-func getClasses(w http.ResponseWriter, r *http.Request) {
+func GetAllClasses(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(classes)
+	json.NewEncoder(w).Encode(availableClasses)
 }
 
-func createClass(w http.ResponseWriter, r *http.Request) {
-	var class Class
-	_ = json.NewDecoder(r.Body).Decode(&class)
-	classes = append(classes, class)
+func CreateNewClass(w http.ResponseWriter, r *http.Request) {
+	var newClass FitnessClass
+	_ = json.NewDecoder(r.Body).Decode(&newClass)
+	availableClasses = append(availableClasses, newClass)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(class)
+	json.NewEncoder(w).Encode(newClass)
 }
 
-func bookClass(w http.ResponseWriter, r *http.Request) {
+func BookAClass(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func renewMembership(w http.ResponseWriter, r *http.Request) {
+func RenewMembership(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
