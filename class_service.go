@@ -19,22 +19,22 @@ type User struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
 	Email    string `json:"email"`
-	Password string `json:"password"` // Note: Storing passwords as plain text is insecure; consider using hashed passwords.
+	Password string `json:"password"`
 }
 
-type FitnessClass struct { // Renamed from Class to FitnessClass for clarity
+type FitnessClass struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	Time    string `json:"time"`
 	Members int    `json:"members"`
 }
 
-var registeredUsers []User           // Renamed from users to registeredUsers for clarity
-var availableClasses []FitnessClass  // Renamed from classes to availableClasses for clarity
+var registeredUsers []User
+var availableClasses []FitnessClass
 
 func main() {
 	router := mux.NewRouter()
-	
+
 	router.HandleFunc("/api/users", GetAllUsers).Methods("GET")
 	router.HandleFunc("/api/user", RegisterNewUser).Methods("POST")
 	router.HandleFunc("/api/classes", GetAllClasses).Methods("GET")
@@ -47,28 +47,46 @@ func main() {
 
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(registeredUsers)
+	if err := json.NewEncoder(w).Encode(registeredUsers); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func RegisterNewUser(w http.ResponseWriter, r *http.Request) {
 	var newUser User
-	_ = json.NewDecoder(r.Body).Decode(&newUser)
+	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	registeredUsers = append(registeredUsers, newUser)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(newUser)
+	if err := json.NewEncoder(w).Encode(newUser); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func GetAllClasses(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(availableClasses)
+	if err := json.NewEncoder(w).Encode(availableClasses); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func CreateNewClass(w http.ResponseWriter, r *http.Request) {
 	var newClass FitnessClass
-	_ = json.NewDecoder(r.Body).Decode(&newClass)
+	if err := json.NewDecoder(r.Body).Decode(&newClass); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	availableClasses = append(availableClasses, newClass)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(newClass)
+	if err := json.NewEncoder(w).Encode(newClass); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func BookAClass(w http.ResponseWriter, r *http.Request) {
