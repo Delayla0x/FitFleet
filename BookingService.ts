@@ -16,12 +16,21 @@ const API_BASE_URL: string = process.env.REACT_APP_API_BASE_URL || '';
 
 class ClassService {
 
+  private static log(message: string, error?: Error): void {
+    if (error) {
+      console.error(`${message}:`, error);
+    } else {
+      console.log(message);
+    }
+  }
+
   static async fetchClassSchedules(): Promise<ClassSchedule[]> {
     try {
       const response = await axios.get(`${API_BASE_URL}/classes/schedules`);
+      this.log('Successfully fetched class schedules');
       return response.data;
     } catch (error) {
-      console.error('Error fetching class schedules', error);
+      this.log('Error fetching class schedules', error);
       throw error;
     }
   }
@@ -29,9 +38,9 @@ class ClassService {
   static async bookAClass(bookingRequest: BookingRequest): Promise<void> {
     try {
       await axios.post(`${API_BASE_URL}/classes/book`, bookingRequest);
-      console.log('Class booking successful');
+      this.log('Class booking successful');
     } catch (error) {
-      console.error('Error booking the class', error);
+      this.log('Error booking the class', error);
       throw error;
     }
   }
@@ -44,9 +53,9 @@ class ClassService {
           userId,
         },
       });
-      console.log('Class reservation cancelled successfully');
+      this.log('Class reservation cancelled successfully');
     } catch (error) {
-      console.error('Error cancelling class reservation', error);
+      this.log('Error cancelling class reservation', error);
       throw error;
     }
   }
