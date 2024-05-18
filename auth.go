@@ -30,7 +30,7 @@ func init() {
     if err := godotenv.Load(); err != nil {
         log.Printf("Warning: No .env file found. Running with defaults or existing environment variables.")
     }
-    
+
     secret := os.Getenv("JWT_SECRET_KEY")
     if secret == "" {
         log.Fatal("JWT_SECRET_KEY is not set. Exiting application.")
@@ -54,6 +54,9 @@ func LoginHandler(responseWriter http.ResponseWriter, request *http.Request) {
     demoUsername := "user1"
     demoPassword := "password"
 
+    // Mimicking a check against a user store or database.
+    // This part should involve checking request body or parameters for actual username/password provided by the user.
+    
     if demoUsername == "user1" && demoPassword == "password" {
         userRole := "regular"
 
@@ -105,12 +108,21 @@ func DashboardHandler(responseWriter http.ResponseWriter, request *http.Request)
         return
     }
 
+    responseWriter.Header().Set("Content-Type", "text/plain")
+    responseWriter.WriteHeader(http.StatusOK)
     responseWriter.Write([]byte(responseMessage))
 }
 
 func TokenVerificationMiddleware(next http.HandlerFunc) http.HandlerFunc {
     return func(responseWriter http.ResponseWriter, request *http.Request) {
         tokenString := request.Header.Get("Authorization")
+
+        // Basic check to ensure the token was provided
+        if tokenString == "" {
+            responseWriter.WriteHeader(http.StatusUnauthorized)
+            json.NewEncoder(responseWriter).Encode(ErrorResponse{ErrorMessage: "Authorization token required"})
+            return
+        }
 
         userClaims := &UserClaims{}
 
