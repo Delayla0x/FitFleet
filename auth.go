@@ -28,11 +28,11 @@ type ErrorResponse struct {
 
 func init() {
     if err := godotenv.Load(); err != nil {
-        log.Printf("Warning: No .env file found. Running with defaults or existing environment variables.")
+        log.Printf("Warning: No .env file found. Assuming environment variables are set externally. Error: %v", err)
     }
 
-    secret := os.Getenv("JWT_SECRET_KEY")
-    if secret == "" {
+    secret, present := os.LookupEnv("JWT_SECRET_KEY")
+    if !present || secret == "" {
         log.Fatal("JWT_SECRET_KEY is not set. Exiting application.")
     }
     jwtSecretKey = []byte(secret)
@@ -54,9 +54,6 @@ func LoginHandler(responseWriter http.ResponseWriter, request *http.Request) {
     demoUsername := "user1"
     demoPassword := "password"
 
-    // Mimicking a check against a user store or database.
-    // This part should involve checking request body or parameters for actual username/password provided by the user.
-    
     if demoUsername == "user1" && demoPassword == "password" {
         userRole := "regular"
 
@@ -73,8 +70,7 @@ func LoginHandler(responseWriter http.ResponseWriter, request *http.Request) {
         tokenString, err := token.SignedString(jwtSecretKey)
 
         if err != nil {
-            responseWriter.WriteHeader(http.StatusInternalServerError)
-            json.NewEncoder(responseWriter).Encode(ErrorResponse{ErrorMessage: "Error creating the token"})
+            httpError(responseWriter, "Error creating the token", http.StatusInternalServerError)
             log.Printf("Error signing token: %v", err)
             return
         }
@@ -83,28 +79,25 @@ func LoginHandler(responseWriter http.ResponseWriter, request *http.Request) {
         responseWriter.WriteHeader(http.StatusOK)
         responseWriter.Write([]byte(tokenString))
     } else {
-        responseWriter.WriteHeader(http.StatusUnauthorized)
-        json.NewEncoder(responseWriter).Encode(ErrorResponse{ErrorMessage: "Invalid username or password"})
-        return
+        httpError(responseWriter, "Invalid username or password", http.StatusUnauthorized)
     }
 }
 
 func DashboardHandler(responseWriter http.ResponseWriter, request *http.Request) {
     claims, ok := request.Context().Value("userClaims").(*UserClaims)
     if !ok {
-        responseWriter.WriteHeader(http.StatusInternalServerError)
-        json.NewEncoder(responseWriter).Encode(ErrorResponse{ErrorMessage: "Error retrieving user claims"})
+        httpError(responseWriter, "Error retrieving user claims", http.StatusInternalServerError)
         return
     }
 
     var responseMessage string
-    if claims.Role == "staff" {
+    switch claims.Role {
+    case "staff":
         responseMessage = fmt.Sprintf("Hello, %s! Welcome to the staff dashboard.", claims.Username)
-    } else if claims.Role == "regular" {
+    case "regular":
         responseMessage = fmt.Sprintf("Hello, %s! Welcome to your dashboard.", claims.Username)
-    } else {
-        responseWriter.WriteHeader(http.StatusForbidden)
-        json.NewEncoder(responseWriter).Encode(ErrorResponse{ErrorMessage: "Access denied"})
+    default:
+        httpError(responseWriter, "Access denied", http.StatusForbidden)
         return
     }
 
@@ -117,10 +110,8 @@ func TokenVerificationMiddleware(next http.HandlerFunc) http.HandlerFunc {
     return func(responseWriter http.ResponseWriter, request *http.Request) {
         tokenString := request.Header.Get("Authorization")
 
-        // Basic check to ensure the token was provided
         if tokenString == "" {
-            responseWriter.WriteHeader(http.StatusUnauthorized)
-            json.NewEncoder(responseWriter).Encode(ErrorResponse{ErrorMessage: "Authorization token required"})
+            httpError(responseWriter, "Authorization token required", http.StatusUnauthorized)
             return
         }
 
@@ -131,12 +122,19 @@ func TokenVerificationMiddleware(next http.HandlerFunc) http.HandlerFunc {
         })
 
         if err != nil || !token.Valid {
-            responseWriter.WriteHeader(http.StatusUnauthorized)
-            json.NewEncoder(responseWriter).Encode(ErrorResponse{ErrorMessage: "Invalid token"})
+            httpError(responseWriter, "Invalid token", http.StatusUnauthorized)
             return
         }
 
         ctx := context.WithValue(request.Context(), "userClaims", userClaims)
         next.ServeHTTP(responseWriter, request.WithContext(ctx))
+    }
+}
+
+func httpError(writer http.ResponseWriter, message string, statusCode int) {
+    writer.WriteHeader(statusCode)
+    err := json.NewEncoder(writer).Encode(ErrorResponse{ErrorMessage: message})
+    if err != nil {
+        log.Printf("Error writing error response: %v", err)
     }
 }
