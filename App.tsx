@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
 import axios from 'axios';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const API_URL = process.env.REACT_APP_API_URL;
 const localizer = momentLocalizer(moment);
@@ -24,13 +24,29 @@ interface Props {
   isStaff: boolean;
 }
 
+const Dashboard = () => (
+  <div>
+    <h2>User Dashboard</h2>
+    <button>Manage My Bookings</button>
+    <button>Update Membership</button>
+  </div>
+);
+
+const AdminArea = () => (
+  <div>
+    <h2>Administrative Area</h2>
+    <button>View All Bookings</button>
+    <button>Manage Users</button>
+  </div>
+);
+
 const FitFleet: React.FC<Props> = ({ isStaff }) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const fetchBookings = async () => {
+    const fetchBookings = async () => {setLoading(true);
       try {
         const response = await axios.get(`${API_URL}/bookings`);
         setBookings(response.data);
@@ -63,28 +79,6 @@ const FitFleet: React.FC<Props> = ({ isStaff }) => {
     console.log(`Selected booking: ${event.title}`);
   };
 
-  const renderDashboard = () => {
-    return (
-      <div>
-        <h2>User Dashboard</h2>
-        <button>Manage My Bookings</button>
-        <button>Update Membership</button>
-      </div>
-    );
-  };
-
-  const renderAdminArea = () => {
-    if (!isStaff) return null;
-
-    return (
-      <div>
-        <h2>Administrative Area</h2>
-        <button>View All Bookings</button>
-        <button>Manage Users</button>
-      </div>
-    );
-  };
-
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -92,8 +86,7 @@ const FitFleet: React.FC<Props> = ({ isStaff }) => {
   return (
     <div>
       <h1>FitFleet</h1>
-      {isStaff && renderAdminArea()}
-      {!isStaff && renderDashboard()}
+      {isStaff ? <AdminArea /> : <Dashboard />}
       <Calendar
         localizer={localizer}
         events={bookings}
